@@ -44,6 +44,26 @@ const findLink = (text, start) => {
   };
 };
 
+const isAlphanumeric = (ch) => Boolean(ch && /[a-zA-Z0-9]/.test(ch));
+const isWhitespace = (ch) => Boolean(ch && /\s/.test(ch));
+
+const isValidEmphasis = (marker, text, start, end) => {
+  if (marker === '`' || marker === '~~') {
+    return true;
+  }
+  const prevChar = start > 0 ? text[start - 1] : '';
+  const firstInside = text[start + marker.length];
+  const lastInside = text[end - 1];
+  const nextChar =
+    end + marker.length < text.length ? text[end + marker.length] : '';
+
+  if (isWhitespace(firstInside) || isWhitespace(lastInside)) return false;
+  if (isAlphanumeric(prevChar)) return false;
+  if (isAlphanumeric(nextChar)) return false;
+
+  return true;
+};
+
 const appendMarkdown = (parent, text) => {
   const tokens = [
     ['**', 'strong'],
@@ -92,7 +112,10 @@ const appendMarkdown = (parent, text) => {
       if (token) {
         const [marker, tagName] = token;
         const end = text.indexOf(marker, index + marker.length);
-        if (end > index + marker.length) {
+        if (
+          end > index + marker.length &&
+          isValidEmphasis(marker, text, index, end)
+        ) {
           flush();
           const formatted = document.createElement(tagName);
           const content = text.slice(index + marker.length, end);

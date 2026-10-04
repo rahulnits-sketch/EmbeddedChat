@@ -58,8 +58,12 @@ const isValidEmphasis = (marker, text, start, end) => {
     end + marker.length < text.length ? text[end + marker.length] : '';
 
   if (isWhitespace(firstInside) || isWhitespace(lastInside)) return false;
-  if (isAlphanumeric(prevChar)) return false;
-  if (isAlphanumeric(nextChar)) return false;
+
+  // CommonMark: only underscore delimiters cannot be intra-word
+  if (marker === '_' || marker === '__') {
+    if (isAlphanumeric(prevChar)) return false;
+    if (isAlphanumeric(nextChar)) return false;
+  }
 
   return true;
 };
@@ -111,11 +115,11 @@ const appendMarkdown = (parent, text) => {
 
       if (token) {
         const [marker, tagName] = token;
-        const end = text.indexOf(marker, index + marker.length);
-        if (
-          end > index + marker.length &&
-          isValidEmphasis(marker, text, index, end)
-        ) {
+        let end = text.indexOf(marker, index + marker.length);
+        while (end !== -1 && !isValidEmphasis(marker, text, index, end)) {
+          end = text.indexOf(marker, end + marker.length);
+        }
+        if (end > index + marker.length) {
           flush();
           const formatted = document.createElement(tagName);
           const content = text.slice(index + marker.length, end);
